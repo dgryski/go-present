@@ -6,10 +6,11 @@ package present
 */
 
 const (
-	ROUNDS                    = 32
-	ROUND_KEY_SIZE_BYTES      = 8
-	PRESENT_BLOCK_SIZE_BYTES  = 8
-	PRESENT_80_KEY_SIZE_BYTES = 10
+	BlockSize = 8
+	KeySize   = 10
+
+	presentRounds       = 32
+	presentRoundKeySize = 8
 )
 
 var sBox = [16]byte{
@@ -22,18 +23,18 @@ func copyKey(from, to []byte) {
 	copy(to, from)
 }
 
-func generateRoundKeys80(suppliedKey []byte, keys *[ROUNDS][ROUND_KEY_SIZE_BYTES]byte) {
+func generateRoundKeys80(suppliedKey []byte, keys *[presentRounds][presentRoundKeySize]byte) {
 	// trashable key copies
-	var key [PRESENT_80_KEY_SIZE_BYTES]byte
-	var newKey [PRESENT_80_KEY_SIZE_BYTES]byte
+	var key [KeySize]byte
+	var newKey [KeySize]byte
 	var i, j byte
 	copyKey(suppliedKey[:], key[:])
 	copyKey(key[:], keys[0][:])
-	for i = 1; i < ROUNDS; i++ {
+	for i = 1; i < presentRounds; i++ {
 		// rotate left 61 bits
-		for j = 0; j < PRESENT_80_KEY_SIZE_BYTES; j++ {
-			newKey[j] = (key[(j+7)%PRESENT_80_KEY_SIZE_BYTES] << 5) |
-				(key[(j+8)%PRESENT_80_KEY_SIZE_BYTES] >> 3)
+		for j = 0; j < KeySize; j++ {
+			newKey[j] = (key[(j+7)%KeySize] << 5) |
+				(key[(j+8)%KeySize] >> 3)
 		}
 		copyKey(newKey[:], key[:])
 
@@ -50,16 +51,16 @@ func generateRoundKeys80(suppliedKey []byte, keys *[ROUNDS][ROUND_KEY_SIZE_BYTES
 
 func addRoundKey(block []byte, roundKey *[8]byte) {
 	var i byte
-	for i = 0; i < PRESENT_BLOCK_SIZE_BYTES; i++ {
+	for i = 0; i < BlockSize; i++ {
 		block[i] ^= roundKey[i]
 	}
 }
 
 func pLayer(block []byte) {
 	var i, j, indexVal, andVal byte
-	var initial [PRESENT_BLOCK_SIZE_BYTES]byte
+	var initial [BlockSize]byte
 	copyKey(block[:], initial[:])
-	for i = 0; i < PRESENT_BLOCK_SIZE_BYTES; i++ {
+	for i = 0; i < BlockSize; i++ {
 		block[i] = 0
 		for j = 0; j < 8; j++ {
 			indexVal = 4*(i%2) + (3 - (j >> 1))
@@ -71,9 +72,9 @@ func pLayer(block []byte) {
 
 func pLayerInverse(block []byte) {
 	var i, j, indexVal, andVal byte
-	var initial [PRESENT_BLOCK_SIZE_BYTES]byte
+	var initial [BlockSize]byte
 	copyKey(block[:], initial[:])
-	for i = 0; i < PRESENT_BLOCK_SIZE_BYTES; i++ {
+	for i = 0; i < BlockSize; i++ {
 		block[i] = 0
 		for j = 0; j < 8; j++ {
 			indexVal = (7 - ((2 * j) % 8)) - bool2byte(i < 4)
@@ -84,27 +85,27 @@ func pLayerInverse(block []byte) {
 }
 
 func Present80_encryptBlock(block []byte, key []byte) {
-	var roundKeys [ROUNDS][ROUND_KEY_SIZE_BYTES]byte
+	var roundKeys [presentRounds][presentRoundKeySize]byte
 	var i, j byte
 	generateRoundKeys80(key, &roundKeys)
-	for i = 0; i < ROUNDS-1; i++ {
+	for i = 0; i < presentRounds-1; i++ {
 		addRoundKey(block, &roundKeys[i])
-		for j = 0; j < PRESENT_BLOCK_SIZE_BYTES; j++ {
+		for j = 0; j < BlockSize; j++ {
 			block[j] = (sBox[block[j]>>4] << 4) | sBox[block[j]&0xF]
 		}
 		pLayer(block)
 	}
-	addRoundKey(block, &roundKeys[ROUNDS-1])
+	addRoundKey(block, &roundKeys[presentRounds-1])
 }
 
 func Present80_decryptBlock(block []byte, key []byte) {
-	var roundKeys [ROUNDS][ROUND_KEY_SIZE_BYTES]byte
+	var roundKeys [presentRounds][presentRoundKeySize]byte
 	var i, j byte
 	generateRoundKeys80(key, &roundKeys)
-	for i = ROUNDS - 1; i > 0; i-- {
+	for i = presentRounds - 1; i > 0; i-- {
 		addRoundKey(block, &roundKeys[i])
 		pLayerInverse(block)
-		for j = 0; j < PRESENT_BLOCK_SIZE_BYTES; j++ {
+		for j = 0; j < BlockSize; j++ {
 			block[j] = (sBoxInverse[block[j]>>4] << 4) | sBoxInverse[block[j]&0xF]
 		}
 	}
