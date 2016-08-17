@@ -1,9 +1,14 @@
 // Package present is an implementation of the PRESENT lightweight block cipher
+/*
+
+This is a mechanical translation of https://github.com/michaelkitson/Present-8bit
+
+*/
 package present
 
-/*
-   Mechanical translation of https://github.com/michaelkitson/Present-8bit
-*/
+import (
+	"strconv"
+)
 
 const (
 	BlockSize = 8
@@ -21,6 +26,27 @@ var sBoxInverse = [16]byte{
 
 func copyKey(from, to []byte) {
 	copy(to, from)
+}
+
+type KeySizeError int
+
+func (k KeySizeError) Error() string { return "present: invalid key size " + strconv.Itoa(int(k)) }
+
+type Cipher struct {
+	roundKeys [presentRounds][presentRoundKeySize]byte
+}
+
+func New(key []byte) (*Cipher, error) {
+
+	if len(key) != KeySize {
+		return nil, KeySizeError(len(key))
+	}
+
+	var cipher Cipher
+
+	generateRoundKeys80(key, &cipher.roundKeys)
+
+	return &cipher, nil
 }
 
 func generateRoundKeys80(suppliedKey []byte, keys *[presentRounds][presentRoundKeySize]byte) {
@@ -84,32 +110,28 @@ func pLayerInverse(block []byte) {
 	}
 }
 
-func Present80_encryptBlock(block []byte, key []byte) {
-	var roundKeys [presentRounds][presentRoundKeySize]byte
+func (c *Cipher) Encrypt(block []byte) {
 	var i, j byte
-	generateRoundKeys80(key, &roundKeys)
 	for i = 0; i < presentRounds-1; i++ {
-		addRoundKey(block, &roundKeys[i])
+		addRoundKey(block, &c.roundKeys[i])
 		for j = 0; j < BlockSize; j++ {
 			block[j] = (sBox[block[j]>>4] << 4) | sBox[block[j]&0xF]
 		}
 		pLayer(block)
 	}
-	addRoundKey(block, &roundKeys[presentRounds-1])
+	addRoundKey(block, &c.roundKeys[presentRounds-1])
 }
 
-func Present80_decryptBlock(block []byte, key []byte) {
-	var roundKeys [presentRounds][presentRoundKeySize]byte
+func (c *Cipher) Decrypt(block []byte) {
 	var i, j byte
-	generateRoundKeys80(key, &roundKeys)
 	for i = presentRounds - 1; i > 0; i-- {
-		addRoundKey(block, &roundKeys[i])
+		addRoundKey(block, &c.roundKeys[i])
 		pLayerInverse(block)
 		for j = 0; j < BlockSize; j++ {
 			block[j] = (sBoxInverse[block[j]>>4] << 4) | sBoxInverse[block[j]&0xF]
 		}
 	}
-	addRoundKey(block, &roundKeys[0])
+	addRoundKey(block, &c.roundKeys[0])
 }
 
 func bool2byte(b bool) byte {

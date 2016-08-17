@@ -24,8 +24,11 @@ func TestPRESENT(t *testing.T) {
 		p, _ := hex.DecodeString(tt.plain)
 		c, _ := hex.DecodeString(tt.cipher)
 
+		cipher, _ := New(k)
+
 		t.Log(p, k, i)
-		Present80_encryptBlock(p, k)
+
+		cipher.Encrypt(p)
 
 		if !bytes.Equal(p, c) {
 			t.Errorf("encrypt(%v,%v)=%v, want %v", tt.plain, tt.key, p, tt.cipher)
@@ -34,7 +37,7 @@ func TestPRESENT(t *testing.T) {
 		p, _ = hex.DecodeString(tt.plain)
 
 		t.Log(c, k, i)
-		Present80_decryptBlock(c, k)
+		cipher.Decrypt(c)
 
 		if !bytes.Equal(p, c) {
 			t.Errorf("decrypt(%v,%v)=%v, want %v", tt.cipher, tt.key, p, tt.plain)
