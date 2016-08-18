@@ -2,6 +2,7 @@ package present
 
 import (
 	"bytes"
+	"crypto/cipher"
 	"encoding/hex"
 	"testing"
 )
@@ -24,23 +25,27 @@ func TestPRESENT(t *testing.T) {
 		p, _ := hex.DecodeString(tt.plain)
 		c, _ := hex.DecodeString(tt.cipher)
 
+		o := make([]byte, BlockSize)
+
 		cipher, _ := New(k)
 
 		t.Log(p, k, i)
 
-		cipher.Encrypt(p)
+		cipher.Encrypt(o, p)
 
-		if !bytes.Equal(p, c) {
+		if !bytes.Equal(o, c) {
 			t.Errorf("encrypt(%v,%v)=%v, want %v", tt.plain, tt.key, p, tt.cipher)
 		}
 
 		p, _ = hex.DecodeString(tt.plain)
 
 		t.Log(c, k, i)
-		cipher.Decrypt(c)
+		cipher.Decrypt(o, c)
 
-		if !bytes.Equal(p, c) {
+		if !bytes.Equal(o, p) {
 			t.Errorf("decrypt(%v,%v)=%v, want %v", tt.cipher, tt.key, p, tt.plain)
 		}
 	}
 }
+
+var _ cipher.Block = (*Cipher)(nil)

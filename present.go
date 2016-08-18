@@ -106,29 +106,33 @@ func pLayerInverse(block []byte) {
 	}
 }
 
-func (c *Cipher) Encrypt(block []byte) {
+func (c *Cipher) Encrypt(dst, src []byte) {
 	var i, j byte
+	copy(dst, src)
 	for i = 0; i < presentRounds-1; i++ {
-		addRoundKey(block, &c.roundKeys[i])
+		addRoundKey(dst, &c.roundKeys[i])
 		for j = 0; j < BlockSize; j++ {
-			block[j] = (sBox[block[j]>>4] << 4) | sBox[block[j]&0xF]
+			dst[j] = (sBox[dst[j]>>4] << 4) | sBox[dst[j]&0xF]
 		}
-		pLayer(block)
+		pLayer(dst)
 	}
-	addRoundKey(block, &c.roundKeys[presentRounds-1])
+	addRoundKey(dst, &c.roundKeys[presentRounds-1])
 }
 
-func (c *Cipher) Decrypt(block []byte) {
+func (c *Cipher) Decrypt(dst, src []byte) {
 	var i, j byte
+	copy(dst, src)
 	for i = presentRounds - 1; i > 0; i-- {
-		addRoundKey(block, &c.roundKeys[i])
-		pLayerInverse(block)
+		addRoundKey(dst, &c.roundKeys[i])
+		pLayerInverse(dst)
 		for j = 0; j < BlockSize; j++ {
-			block[j] = (sBoxInverse[block[j]>>4] << 4) | sBoxInverse[block[j]&0xF]
+			dst[j] = (sBoxInverse[dst[j]>>4] << 4) | sBoxInverse[dst[j]&0xF]
 		}
 	}
-	addRoundKey(block, &c.roundKeys[0])
+	addRoundKey(dst, &c.roundKeys[0])
 }
+
+func (c *Cipher) BlockSize() int { return BlockSize }
 
 func bool2byte(b bool) byte {
 	if b {
