@@ -24,10 +24,6 @@ var sBox = [16]byte{
 var sBoxInverse = [16]byte{
 	0x5, 0xE, 0xF, 0x8, 0xC, 0x1, 0x2, 0xD, 0xB, 0x4, 0x6, 0x3, 0x0, 0x7, 0x9, 0xA}
 
-func copyKey(from, to []byte) {
-	copy(to, from)
-}
-
 type KeySizeError int
 
 func (k KeySizeError) Error() string { return "present: invalid key size " + strconv.Itoa(int(k)) }
@@ -54,15 +50,15 @@ func generateRoundKeys80(suppliedKey []byte, keys *[presentRounds][presentRoundK
 	var key [KeySize]byte
 	var newKey [KeySize]byte
 	var i, j byte
-	copyKey(suppliedKey[:], key[:])
-	copyKey(key[:], keys[0][:])
+	copy(key[:], suppliedKey[:])
+	copy(keys[0][:], key[:])
 	for i = 1; i < presentRounds; i++ {
 		// rotate left 61 bits
 		for j = 0; j < KeySize; j++ {
 			newKey[j] = (key[(j+7)%KeySize] << 5) |
 				(key[(j+8)%KeySize] >> 3)
 		}
-		copyKey(newKey[:], key[:])
+		copy(key[:], newKey[:])
 
 		// pass leftmost 4-bits through sBox
 		key[0] = (sBox[key[0]>>4] << 4) | (key[0] & 0xF)
@@ -71,7 +67,7 @@ func generateRoundKeys80(suppliedKey []byte, keys *[presentRounds][presentRoundK
 		key[8] ^= i << 7 // bit 15
 		key[7] ^= i >> 1 // bits 19-16
 
-		copyKey(key[:], keys[i][:])
+		copy(keys[i][:], key[:])
 	}
 }
 
@@ -85,7 +81,7 @@ func addRoundKey(block []byte, roundKey *[8]byte) {
 func pLayer(block []byte) {
 	var i, j, indexVal, andVal byte
 	var initial [BlockSize]byte
-	copyKey(block[:], initial[:])
+	copy(initial[:], block[:])
 	for i = 0; i < BlockSize; i++ {
 		block[i] = 0
 		for j = 0; j < 8; j++ {
@@ -99,7 +95,7 @@ func pLayer(block []byte) {
 func pLayerInverse(block []byte) {
 	var i, j, indexVal, andVal byte
 	var initial [BlockSize]byte
-	copyKey(block[:], initial[:])
+	copy(initial[:], block[:])
 	for i = 0; i < BlockSize; i++ {
 		block[i] = 0
 		for j = 0; j < 8; j++ {
