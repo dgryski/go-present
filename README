@@ -1,0 +1,3 @@
+go-present: the PRESENT lightweight block cipher
+
+godoc: https://godoc.org/github.com/dgryski/go-present
