@@ -49,12 +49,11 @@ func generateRoundKeys80(suppliedKey []byte, keys *[presentRounds][presentRoundK
 	// trashable key copies
 	var key [KeySize]byte
 	var newKey [KeySize]byte
-	var i, j byte
 	copy(key[:], suppliedKey[:])
 	copy(keys[0][:], key[:])
-	for i = 1; i < presentRounds; i++ {
+	for i := byte(1); i < presentRounds; i++ {
 		// rotate left 61 bits
-		for j = 0; j < KeySize; j++ {
+		for j := 0; j < KeySize; j++ {
 			newKey[j] = (key[(j+7)%KeySize] << 5) |
 				(key[(j+8)%KeySize] >> 3)
 		}
@@ -72,46 +71,42 @@ func generateRoundKeys80(suppliedKey []byte, keys *[presentRounds][presentRoundK
 }
 
 func addRoundKey(block []byte, roundKey *[8]byte) {
-	var i byte
-	for i = 0; i < BlockSize; i++ {
+	for i := 0; i < BlockSize; i++ {
 		block[i] ^= roundKey[i]
 	}
 }
 
 func pLayer(block []byte) {
-	var i, j, indexVal, andVal byte
 	var initial [BlockSize]byte
 	copy(initial[:], block[:])
-	for i = 0; i < BlockSize; i++ {
+	for i := byte(0); i < BlockSize; i++ {
 		block[i] = 0
-		for j = 0; j < 8; j++ {
-			indexVal = 4*(i%2) + (3 - (j >> 1))
-			andVal = (8 >> (i >> 1)) << ((j % 2) << 2)
+		for j := byte(0); j < 8; j++ {
+			indexVal := 4*(i%2) + (3 - (j >> 1))
+			andVal := byte(8>>(i>>1)) << ((j % 2) << 2)
 			block[i] |= bool2byte((initial[indexVal]&andVal) != 0) << j
 		}
 	}
 }
 
 func pLayerInverse(block []byte) {
-	var i, j, indexVal, andVal byte
 	var initial [BlockSize]byte
 	copy(initial[:], block[:])
-	for i = 0; i < BlockSize; i++ {
+	for i := byte(0); i < BlockSize; i++ {
 		block[i] = 0
-		for j = 0; j < 8; j++ {
-			indexVal = (7 - ((2 * j) % 8)) - bool2byte(i < 4)
-			andVal = (7 - ((2 * i) % 8)) - bool2byte(j < 4)
+		for j := byte(0); j < 8; j++ {
+			indexVal := (7 - ((2 * j) % 8)) - bool2byte(i < 4)
+			andVal := (7 - ((2 * i) % 8)) - bool2byte(j < 4)
 			block[i] |= bool2byte((initial[indexVal]&(1<<andVal)) != 0) << j
 		}
 	}
 }
 
 func (c *Cipher) Encrypt(dst, src []byte) {
-	var i, j byte
 	copy(dst, src)
-	for i = 0; i < presentRounds-1; i++ {
+	for i := 0; i < presentRounds-1; i++ {
 		addRoundKey(dst, &c.roundKeys[i])
-		for j = 0; j < BlockSize; j++ {
+		for j := 0; j < BlockSize; j++ {
 			dst[j] = (sBox[dst[j]>>4] << 4) | sBox[dst[j]&0xF]
 		}
 		pLayer(dst)
@@ -120,12 +115,11 @@ func (c *Cipher) Encrypt(dst, src []byte) {
 }
 
 func (c *Cipher) Decrypt(dst, src []byte) {
-	var i, j byte
 	copy(dst, src)
-	for i = presentRounds - 1; i > 0; i-- {
+	for i := presentRounds - 1; i > 0; i-- {
 		addRoundKey(dst, &c.roundKeys[i])
 		pLayerInverse(dst)
-		for j = 0; j < BlockSize; j++ {
+		for j := 0; j < BlockSize; j++ {
 			dst[j] = (sBoxInverse[dst[j]>>4] << 4) | sBoxInverse[dst[j]&0xF]
 		}
 	}
@@ -138,6 +132,5 @@ func bool2byte(b bool) byte {
 	if b {
 		return 1
 	}
-
 	return 0
 }
