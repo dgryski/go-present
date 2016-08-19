@@ -48,4 +48,21 @@ func TestPRESENT(t *testing.T) {
 	}
 }
 
+func BenchmarkPresent(b *testing.B) {
+	key := make([]byte, 10)
+	blk := make([]byte, 8)
+
+	c, err := New(key)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.SetBytes(int64(len(blk)))
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		c.Encrypt(blk, blk)
+	}
+}
+
 var _ cipher.Block = (*Cipher)(nil)
